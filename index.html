@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteLab Lighting Analysis Platform</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-lite">LITE</span><span class="logo-lab">LAB</span>
+        <span class="logo-register">®</span>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-tab" data-tab="compare">Compare</button>
+        <button class="nav-tab" data-tab="analytics">Analytics</button>
+        <button class="nav-tab" data-tab="recommend">Recommendations</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- DASHBOARD TAB -->
+  <section class="tab-content active" id="dashboard">
+    <header class="dashboard-header">
+      <div>
+        <h1>Lighting Intelligence Dashboard</h1>
+        <p class="subtitle">Professional lighting analysis for optimal efficiency and cost savings</p>
+      </div>
+      <div class="header-controls">
+        <label>Location: <select id="location">
+          <option>Living Room</option>
+          <option>Office</option>
+          <option>Gallery</option>
+          <option>Museum</option>
+          <option>Warehouse</option>
+        </select></label>
+        <label>Usage (hrs/day): <input type="number" id="usageHours" value="6" min="1" max="24"></label>
+        <label>Rate (₹/kWh): <input type="number" id="rate" value="8" min="0.1" step="0.1"></label>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Light Selector -->
+      <div class="panel card-elevated">
+        <h2>Fixture Selection</h2>
+        <label class="form-label">Choose Lighting Product</label>
+        <select id="lightSelect" class="select-large">
+          <option value="">-- Select a product --</option>
+        </select>
+        
+        <div class="specs-card" id="specsCard" style="display: none;">
+          <div class="spec-row">
+            <span class="spec-label">Category</span>
+            <span class="spec-value" id="category">--</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Type</span>
+            <span class="spec-value" id="type">--</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Wattage</span>
+            <span class="spec-value" id="wattage">--</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Lumens</span>
+            <span class="spec-value" id="lumens">--</span>
+          </div>
+          <div class="spec-row highlight-row">
+            <span class="spec-label">Efficiency</span>
+            <span class="spec-value" id="efficiency">--</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Key Features</span>
+            <span class="spec-value" id="features">--</span>
+          </div>
+        </div>
+
+        <div class="quantity-control">
+          <label>Number of Fixtures:</label>
+          <input type="number" id="quantity" value="1" min="1" max="100">
+        </div>
+      </div>
+
+      <!-- Energy & Cost -->
+      <div class="panel card-elevated">
+        <h2>Energy & Cost Impact</h2>
+        
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">Daily Energy</div>
+            <div class="metric-value"><span id="dailyEnergy">0</span> kWh</div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-label">Monthly Energy</div>
+            <div class="metric-value"><span id="monthlyEnergy">0</span> kWh</div>
+          </div>
+
+          <div class="metric-card highlight-card">
+            <div class="metric-label">Monthly Cost</div>
+            <div class="metric-value">₹<span id="monthlyCost">0</span></div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Annual Cost</div>
+            <div class="metric-value">₹<span id="annualCost">0</span></div>
+          </div>
+        </div>
+
+        <div class="efficiency-section">
+          <div class="score-label">Efficiency Score</div>
+          <div class="score-bar">
+            <div class="score-fill" id="scoreBar"></div>
+          </div>
+          <p class="score-text" id="scoreText">--</p>
+        </div>
+      </div>
+
+      <!-- Comparison -->
+      <div class="panel card-elevated">
+        <h2>Quick Comparison</h2>
+        <p class="panel-subtitle">vs. Industry Average</p>
+        
+        <div class="comparison-item">
+          <span class="comp-label">Efficiency</span>
+          <div class="comp-bar">
+            <div class="comp-fill" id="efficiencyComp" style="width: 0%"></div>
+          </div>
+          <span class="comp-value" id="efficiencyCompValue">0%</span>
+        </div>
+
+        <div class="comparison-item">
+          <span class="comp-label">Cost per 1000 Lumens</span>
+          <div class="comp-bar">
+            <span class="comp-value-badge" id="costPer1000">--</span>
+          </div>
+        </div>
+
+        <div class="recommendation-badge" id="recommendation">
+          ★ Select a product to begin
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE TAB -->
+  <section class="tab-content" id="compare">
+    <header class="section-header">
+      <h1>Product Comparison</h1>
+      <p class="subtitle">Side-by-side analysis of multiple lighting solutions</p>
+    </header>
+
+    <div class="compare-container">
+      <div class="filter-section">
+        <h3>Filter By:</h3>
+        <div class="filter-group">
+          <label>
+            <input type="checkbox" class="category-filter" value="Art & Culture"> Art & Culture
+          </label>
+          <label>
+            <input type="checkbox" class="category-filter" value="Workplace"> Workplace
+          </label>
+          <label>
+            <input type="checkbox" class="category-filter" value="Residential"> Residential
+          </label>
+          <label>
+            <input type="checkbox" class="category-filter" value="Commercial"> Commercial
+          </label>
+          <label>
+            <input type="checkbox" class="category-filter" value="Facade"> Facade
+          </label>
+          <label>
+            <input type="checkbox" class="category-filter" value="Hospitality"> Hospitality
+          </label>
+          <label>
+            <input type="checkbox" class="category-filter" value="Infrastructure"> Infrastructure
+          </label>
+        </div>
+        <button class="btn-secondary" id="resetFilters">Reset Filters</button>
+      </div>
+
+      <div class="table-container" id="comparisonTable">
+        <!-- Generated by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS TAB -->
+  <section class="tab-content" id="analytics">
+    <header class="section-header">
+      <h1>Lighting Analytics</h1>
+      <p class="subtitle">Visualize efficiency trends and cost analysis across product lines</p>
+    </header>
+
+    <div class="analytics-grid">
+      <div class="chart-panel">
+        <h3>Efficiency vs Wattage</h3>
+        <canvas id="efficiencyChart"></canvas>
+      </div>
+
+      <div class="chart-panel">
+        <h3>Lumens Distribution by Category</h3>
+        <canvas id="lumensChart"></canvas>
+      </div>
+
+      <div class="chart-panel">
+        <h3>Top 10 Most Efficient Products</h3>
+        <canvas id="topEfficiencyChart"></canvas>
+      </div>
+
+      <div class="chart-panel">
+        <h3>Cost per Lumen by Category</h3>
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECOMMENDATIONS TAB -->
+  <section class="tab-content" id="recommend">
+    <header class="section-header">
+      <h1>Smart Recommendations</h1>
+      <p class="subtitle">AI-powered suggestions based on your requirements</p>
+    </header>
+
+    <div class="recommendation-container">
+      <div class="requirement-section">
+        <h3>Your Requirements</h3>
+        <div class="requirement-grid">
+          <div class="req-input">
+            <label>Min. Light Output (Lumens)</label>
+            <input type="number" id="minLumens" value="500" min="0">
+          </div>
+          <div class="req-input">
+            <label>Max. Wattage</label>
+            <input type="number" id="maxWattage" value="50" min="1">
+          </div>
+          <div class="req-input">
+            <label>Application Category</label>
+            <select id="appCategory">
+              <option value="">All Categories</option>
+              <option value="Art & Culture">Art & Culture</option>
+              <option value="Workplace">Workplace</option>
+              <option value="Residential">Residential</option>
+              <option value="Commercial">Commercial</option>
+              <option value="Facade">Facade</option>
+              <option value="Hospitality">Hospitality</option>
+              <option value="Infrastructure">Infrastructure</option>
+            </select>
+          </div>
+          <div class="req-input">
+            <label>Priority</label>
+            <select id="priority">
+              <option value="efficiency">Efficiency (lm/W)</option>
+              <option value="cost">Cost Effectiveness</option>
+              <option value="lumens">Light Output</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" id="getRecommendations">Get Recommendations</button>
+      </div>
+
+      <div class="recommendations-results" id="recommendationsResults">
+        <!-- Generated by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
