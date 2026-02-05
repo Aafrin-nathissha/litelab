@@ -72,6 +72,13 @@ function initializeNavigation() {
           updateAllCharts();
         }, 100);
       }
+
+      if (targetTab === "workspace") {
+        setTimeout(() => {
+          resizeThreePreview();
+          renderWorkspace();
+        }, 100);
+      }
     });
   });
 }
@@ -585,6 +592,12 @@ const workspacePresets = {
 
 let workspaceCanvas = null;
 let workspaceCtx = null;
+let threeScene = null;
+let threeCamera = null;
+let threeRenderer = null;
+let threeRoom = null;
+let threeLightsGroup = null;
+let threeControls = null;
 
 function initializeWorkspace() {
   workspaceCanvas = document.getElementById("floorCanvas");
@@ -594,6 +607,7 @@ function initializeWorkspace() {
   buildFixtureLibrary();
   syncWorkspaceInputs();
   resizeWorkspaceCanvas();
+  initializeThreePreview();
   renderWorkspace();
   updateWorkspaceSummary();
 
@@ -604,6 +618,7 @@ function initializeWorkspace() {
 
   window.addEventListener("resize", () => {
     resizeWorkspaceCanvas();
+    resizeThreePreview();
     renderWorkspace();
   });
 }
@@ -726,6 +741,8 @@ function renderWorkspace() {
     ctx.textBaseline = "middle";
     ctx.fillText(fixture.label, x, y);
   });
+
+  updateThreeScene();
 }
 
 function renderHeatmapLayer(ctx, scale, offsetX, offsetY) {
@@ -879,6 +896,250 @@ function updateBOM() {
     li.textContent = "No fixtures placed yet.";
     bomList.appendChild(li);
   }
+}
+
+function initializeThreePreview() {
+  const container = document.getElementById("threeContainer");
+  
+  console.log("=== THREE.js Init Debug ===");
+  console.log("Container found:", !!container);
+  
+  if (container) {
+    const styles = window.getComputedStyle(container);
+    console.log("Container diagnostics:", {
+      id_check: !!document.getElementById('threeContainer'),
+      visibility: styles.visibility,
+      display: styles.display,
+      is_connected: container.isConnected,
+      z_index: styles.zIndex,
+      pointer_events: styles.pointerEvents,
+      clientWidth: container.clientWidth,
+      clientHeight: container.clientHeight,
+      offsetWidth: container.offsetWidth,
+      offsetHeight: container.offsetHeight,
+      parentElement: container.parentElement?.className,
+      parentDisplay: container.parentElement ? window.getComputedStyle(container.parentElement).display : 'N/A'
+    });
+  }
+  
+  console.log("THREE library:", typeof window.THREE !== "undefined" ? "loaded" : "NOT loaded");
+  
+  if (!container) {
+    console.error("threeContainer not found!");
+    return;
+  }
+  
+  if (!window.THREE) {
+    console.warn("THREE.js library not loaded. Waiting for module loader...");
+    waitForThreeLoaded(() => {
+      if (!window.THREE) {
+        console.warn("Module loader did not provide THREE. Attempting CDN fallback...");
+        loadThreeFromCDN(() => {
+          if (!window.THREE) {
+            console.error("THREE.js still not available after fallback load.");
+            return;
+          }
+          initializeThreePreview();
+        });
+        return;
+      }
+      initializeThreePreview();
+    });
+    return;
+  }
+
+  if (!window.OrbitControls) {
+    loadOrbitControls(() => {
+      initializeThreePreview();
+    });
+    return;
+  }
+
+  try {
+    threeScene = new THREE.Scene();
+    threeScene.background = new THREE.Color(0x0b1226);
+    console.log("Scene created");
+
+    threeCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    threeCamera.position.set(0, 6, 10);
+    threeCamera.lookAt(0, 0, 0);
+    console.log("Camera created");
+
+    threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+    threeRenderer.domElement.style.width = "100%";
+    threeRenderer.domElement.style.height = "100%";
+    threeRenderer.domElement.style.display = "block";
+    container.innerHTML = "";
+    container.appendChild(threeRenderer.domElement);
+    console.log("Renderer created and appended");
+
+    if (window.OrbitControls) {
+      threeControls = new window.OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls.enableDamping = true;
+      threeControls.dampingFactor = 0.08;
+      threeControls.target.set(0, 1.2, 0);
+      threeControls.update();
+      console.log("OrbitControls enabled");
+    }
+
+    const ambient = new THREE.AmbientLight(0x4b5563, 1.1);
+    threeScene.add(ambient);
+    console.log("Ambient light added");
+
+    const dirLight = new THREE.DirectionalLight(0x10b981, 0.8);
+    dirLight.position.set(5, 10, 7);
+    threeScene.add(dirLight);
+    console.log("Directional light added");
+
+    threeLightsGroup = new THREE.Group();
+    threeScene.add(threeLightsGroup);
+    console.log("Lights group added");
+
+    resizeThreePreview();
+    updateThreeScene();
+    threeRenderer.render(threeScene, threeCamera);
+    console.log("Initial render complete");
+    
+    animateThree();
+    console.log("Animation started");
+  } catch (error) {
+    console.error("ERROR in initializeThreePreview:", error);
+  }
+}
+
+function waitForThreeLoaded(callback) {
+  if (window.THREE) {
+    callback && callback();
+    return;
+  }
+
+  const handler = () => {
+    window.removeEventListener("three-loaded", handler);
+    callback && callback();
+  };
+
+  window.addEventListener("three-loaded", handler);
+
+  setTimeout(async () => {
+    window.removeEventListener("three-loaded", handler);
+    if (!window.THREE) {
+      try {
+        const threeModule = await import("./three.module.js");
+        const controlsModule = await import("./OrbitControls.js");
+        window.THREE = threeModule;
+        window.OrbitControls = controlsModule.OrbitControls;
+      } catch (error) {
+        console.error("Dynamic import failed:", error);
+      }
+    }
+    callback && callback();
+  }, 500);
+}
+
+function loadOrbitControls(callback) {
+  if (window.OrbitControls) {
+    callback && callback();
+    return;
+  }
+
+  import("./OrbitControls.js")
+    .then(module => {
+      window.OrbitControls = module.OrbitControls;
+      callback && callback();
+    })
+    .catch(error => {
+      console.error("Failed to load OrbitControls:", error);
+      callback && callback();
+    });
+}
+
+function loadThreeFromCDN(callback) {
+  const existing = document.querySelector('script[src*="three.min.js"]');
+  if (existing && typeof callback === "function") {
+    existing.addEventListener("load", () => callback());
+    existing.addEventListener("error", () => callback());
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = "https://unpkg.com/three@0.160.0/build/three.min.js";
+  script.onload = () => callback && callback();
+  script.onerror = () => callback && callback();
+  document.head.appendChild(script);
+}
+
+function resizeThreePreview() {
+  if (!threeRenderer || !threeCamera) return;
+  const container = document.getElementById("threeContainer");
+  if (!container) return;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  if (width === 0 || height === 0) return;
+  threeRenderer.setSize(width, height);
+  threeCamera.aspect = width / height;
+  threeCamera.updateProjectionMatrix();
+}
+
+function updateThreeScene() {
+  if (!threeScene) return;
+
+  // Room
+  if (threeRoom) {
+    threeScene.remove(threeRoom);
+  }
+  const roomWidth = workspaceState.roomWidth;
+  const roomHeight = 3.2;
+  const roomDepth = workspaceState.roomHeight;
+  const roomGeometry = new THREE.BoxGeometry(roomWidth, roomHeight, roomDepth);
+  const roomMaterial = new THREE.MeshStandardMaterial({
+    color: 0x111827,
+    metalness: 0.1,
+    roughness: 0.8,
+    side: THREE.DoubleSide
+  });
+  threeRoom = new THREE.Mesh(roomGeometry, roomMaterial);
+  threeRoom.position.y = roomHeight / 2;
+  threeScene.add(threeRoom);
+
+  // Floor
+  const floorGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
+  const floorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    metalness: 0.05,
+    roughness: 0.9
+  });
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0.01;
+  threeScene.add(floor);
+
+  // Fixtures
+  threeLightsGroup.clear();
+  const lightGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+  workspaceState.fixtures.forEach(fixture => {
+    const lightMat = new THREE.MeshStandardMaterial({
+      color: 0x3b82f6,
+      emissive: 0x10b981,
+      emissiveIntensity: 0.8
+    });
+    const lightMesh = new THREE.Mesh(lightGeometry, lightMat);
+    lightMesh.position.set(
+      fixture.x - roomWidth / 2,
+      roomHeight - 0.2,
+      fixture.y - roomDepth / 2
+    );
+    threeLightsGroup.add(lightMesh);
+  });
+}
+
+function animateThree() {
+  if (!threeRenderer || !threeScene || !threeCamera) return;
+  requestAnimationFrame(animateThree);
+  if (threeControls) {
+    threeControls.update();
+  }
+  threeRenderer.render(threeScene, threeCamera);
 }
 
 function clearWorkspaceLayout() {

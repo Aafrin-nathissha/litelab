@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LiteLab Lighting Analysis Platform</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Load THREE.js FIRST (local copy for reliability) -->
+  <script src="three.min.js"></script>
+  <!-- Load Chart.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <!-- Load jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -347,6 +351,14 @@
           <canvas id="floorCanvas" width="900" height="520"></canvas>
           <div class="canvas-hint">Click a fixture to select • Drag to reposition</div>
         </div>
+
+        <div class="three-wrap">
+          <div class="three-header">
+            <h4>3D Room Preview</h4>
+            <span>Simple spatial visualization</span>
+          </div>
+          <div id="threeContainer"></div>
+        </div>
       </div>
 
       <aside class="workspace-panel">
@@ -397,6 +409,6 @@
     </div>
   </section>
 
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
